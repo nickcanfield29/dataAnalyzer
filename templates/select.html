@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cross‑Tab Builder – Step 2</title>
+    <!-- templates/index.html (or upload.html etc.) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Step 2 – Choose Breakdown &amp; Analysis Variables</h1>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('process') }}">
+    <!-- Preserve filenames from step 1 -->
+    <input type="hidden" name="data_fn" value="{{ data_fn }}">
+    <input type="hidden" name="map_fn"  value="{{ map_fn }}">
+
+    <label>
+      Breakdown variables (categorical)
+      <br>
+      <select name="breakdowns" multiple size="10" required>
+        {% for val, lbl in cat_opts %}
+          <option value="{{ val }}">{{ lbl }}</option>
+        {% endfor %}
+      </select>
+      <small><br>(Ctrl/⌘‑click for multi‑select)</small>
+    </label>
+
+    <label>
+      Analysis variables
+      <br>
+      <select name="analysis_vars" multiple size="15" required>
+        {% for val, lbl in all_opts %}
+          <option value="{{ val }}">{{ lbl }}</option>
+        {% endfor %}
+      </select>
+      <small><br>(Ctrl/⌘‑click for multi‑select)</small>
+    </label>
+
+    <button type="submit">Run analysis &amp; download Excel</button>
+  </form>
+</body>
+</html>

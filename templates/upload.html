@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cross‑Tab Builder – Step 1</title>
+<!--  <style>-->
+<!--    body{font-family:system-ui, sans-serif;max-width:640px;margin:40px auto;}-->
+<!--    label{display:block;margin:1rem 0;}-->
+<!--    .error{color:#c00;margin-bottom:1rem;}-->
+<!--  </style>-->
+    <!-- templates/index.html (or upload.html etc.) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Step 1 – Upload Data &amp; Data‑map</h1>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label"><strong>Data file (CSV)</strong></label>
+      <input class="form-control"
+             type="file"
+             name="data_file"
+             accept=".csv"
+             required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label"><strong>Data-map file (CSV)</strong></label>
+      <input class="form-control"
+             type="file"
+             name="map_file"
+             accept=".csv"
+             required>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Upload &amp; continue</button>
+  </form>
+
+</body>
+</html>

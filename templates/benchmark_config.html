@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Loading Benchmark Builder...</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div style="text-align: center; margin-top: 100px;">
+    <h2>Loading Benchmark Builder...</h2>
+    <p>Please wait...</p>
+  </div>
+
+  <script>
+    // Build query string with all parameters
+    const params = new URLSearchParams();
+    params.append('data_fn', '{{ data_fn }}');
+    params.append('map_fn', '{{ map_fn }}');
+    params.append('num_tiers', '{{ num_tiers }}');
+    params.append('benchmark_name', '{{ benchmark_name }}');
+
+    // Add tier configurations
+    {% for i, tier in enumerate(tiers) %}
+    params.append('tier_{{ i }}_label', '{{ tier.label }}');
+    params.append('tier_{{ i }}_min', '{{ tier.min }}');
+    params.append('tier_{{ i }}_max', '{{ tier.max }}');
+    {% endfor %}
+
+    // Redirect to builder with all params
+    window.location.href = '/benchmark/builder?' + params.toString();
+  </script>
+</body>
+</html>

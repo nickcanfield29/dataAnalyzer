@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cross‑Tab Generator</title>
+    <!-- templates/index.html (or upload.html etc.) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Upload Data & Define Crosstabs</h1>
+  <form action="/process" method="post" enctype="multipart/form-data">
+    <div>
+      <label>Data File (CSV or XLSX):</label>
+      <input type="file" name="data_file" required>
+    </div>
+    <div>
+      <label>Data‑map (CSV):</label>
+      <input type="file" name="map_file" required>
+    </div>
+    <div>
+      <label>Breakdowns (CTRL+click multi‑select):</label><br>
+      <select name="breakdowns" multiple size="5">
+        <!-- You can dynamically populate this via JS after map upload in v2 -->
+        <option value="country">country</option>
+        <option value="company_size">company_size</option>
+        <option value="age_group">age_group</option>
+        <!-- … -->
+      </select>
+    </div>
+    <div>
+      <label>Measures (CTRL+click):</label><br>
+      <select name="measures" multiple size="5">
+        <option value="education_level">education_level</option>
+        <option value="revenue">revenue</option>
+        <option value="satisfaction">satisfaction</option>
+        <!-- … -->
+      </select>
+    </div>
+    <div>
+      <input type="checkbox" name="want_pct" checked> Include % of total for categorical<br>
+      <input type="checkbox" name="want_avg" checked> Include average for numeric
+    </div>
+    <button type="submit">Generate Excel</button>
+  </form>
+</body>
+</html>

@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Benchmark Builder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .question-card {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      background: white;
+    }
+    .question-card.collapsed .scoring-config {
+      display: none;
+    }
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .question-header:hover {
+      background: #f8f9fa;
+    }
+    .scoring-config {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #ddd;
+    }
+    .bin-input, .cat-input {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+      margin: 8px 0;
+      align-items: center;
+    }
+    .weight-input {
+      width: 80px;
+      padding: 5px;
+    }
+    .preview-box {
+      background: #f0f8ff;
+      border: 2px solid #4F81BD;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      position: sticky;
+      top: 20px;
+    }
+    .distribution-bar {
+      display: flex;
+      height: 30px;
+      margin: 10px 0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .dist-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .btn-primary {
+      background: #4F81BD;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary:hover {
+      background: #3d6491;
+    }
+    .btn-secondary {
+      background: #9BBB59;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-danger {
+      background: #C0504D;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .add-question-box {
+      border: 2px dashed #4F81BD;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 15px 0;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .add-question-box:hover {
+      background: #f0f8ff;
+    }
+    select, input[type="number"], input[type="text"] {
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .stats-box {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 5px;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    .cat-option-stat {
+      font-size: 11px;
+      color: #666;
+      margin-left: 10px;
+    }
+    .total-points-display {
+      background: #FFF3CD;
+      border: 1px solid #FFC107;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    .equation-display {
+      background: #E8F4FD;
+      border: 1px solid #4F81BD;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .scoring-formula {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .stats-box {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 5px;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    .cat-option-stat {
+      font-size: 11px;
+      color: #666;
+      margin-left: 10px;
+    }
+    .total-points-display {
+      background: #FFF3CD;
+      border: 1px solid #FFC107;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Build Benchmark: {{ benchmark_name }}</h1>
+
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <!-- Left column: Question builder -->
+    <div>
+      <h2>Selected Questions (<span id="question-count">0</span>/10)</h2>
+
+      <div class="total-points-display" id="total-points-display" style="display: none;">
+        <strong>Maximum Possible Score: </strong><span id="max-score">0</span> points
+        <br><small>This is the highest score a respondent can achieve based on current configuration.</small>
+      </div>
+
+      <div class="equation-display" id="equation-display" style="display: none;">
+        <strong>📐 Scoring Formula:</strong>
+        <div id="formula-text" style="margin-top: 10px; line-height: 1.6;">
+          <!-- Formula will be displayed here -->
+        </div>
+      </div>
+
+      <div id="questions-container">
+        <!-- Questions will be added here dynamically -->
+      </div>
+
+      <div class="add-question-box" onclick="showAddQuestionModal()">
+        <strong>+ Add Question to Benchmark</strong>
+        <p style="color: #666; margin: 5px 0 0 0;">Click to select from available questions</p>
+      </div>
+
+      <div style="margin-top: 30px;">
+        <button class="btn-primary" onclick="saveAndDownload()" style="font-size: 16px; padding: 12px 30px;">
+          💾 Save & Download Files
+        </button>
+        <button class="btn-secondary" onclick="skipToAnalysis()" style="margin-left: 10px;">
+          Skip & Go to Analysis →
+        </button>
+      </div>
+    </div>
+
+    <!-- Right column: Preview -->
+    <div>
+      <div class="preview-box">
+        <h3>📊 Distribution Preview</h3>
+        <p style="color: #666; font-size: 13px;">Add questions and click "Calculate" to see how respondents will be distributed.</p>
+
+        <div id="distribution-display">
+          <p style="text-align: center; color: #999;">No data yet</p>
+        </div>
+
+        <div id="score-stats-display" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+          <strong>📈 Benchmark Score Statistics:</strong>
+          <div class="stats-grid" style="margin-top: 10px;">
+            <div class="stat-item"><span>Min:</span> <strong id="score-min">-</strong></div>
+            <div class="stat-item"><span>Max:</span> <strong id="score-max">-</strong></div>
+            <div class="stat-item"><span>Mean:</span> <strong id="score-mean">-</strong></div>
+            <div class="stat-item"><span>Median:</span> <strong id="score-median">-</strong></div>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="calculateDistribution()" style="width: 100%; margin-top: 15px;">
+          🔄 Calculate Distribution
+        </button>
+      </div>
+
+      <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin-top: 15px;">
+        <strong>💡 Tips:</strong>
+        <ul style="margin: 10px 0; padding-left: 20px; font-size: 13px;">
+          <li>Higher points = higher tier placement</li>
+          <li>Adjust weights to prioritize certain questions</li>
+          <li>Aim for balanced distribution across tiers</li>
+          <li>Missing values are ignored in calculations</li>
+        </ul>
+      </div>
+
+      <div style="background: #E8F4FD; border: 1px solid #4F81BD; border-radius: 5px; padding: 15px; margin-top: 15px;">
+        <strong>📊 How Scoring Works:</strong>
+        <ol style="margin: 10px 0; padding-left: 20px; font-size: 13px; line-height: 1.6;">
+          <li><strong>Each answer gets points:</strong> Based on your configuration</li>
+          <li><strong>Points are weighted:</strong> Points × Weight for each question</li>
+          <li><strong>Score is normalized:</strong> Total ÷ Max Possible × 100</li>
+          <li><strong>Tier assigned:</strong> Based on final score (0-100)</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden form to submit -->
+  <form id="benchmark-form" method="POST" action="{{ url_for('save_benchmark') }}" style="display: none;">
+    <input type="hidden" name="data_fn" value="{{ data_fn }}">
+    <input type="hidden" name="map_fn" value="{{ map_fn }}">
+    <input type="hidden" name="benchmark_config" id="benchmark_config">
+  </form>
+
+  <!-- Modal for adding questions -->
+  <div id="add-question-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 600px; margin: 50px auto; padding: 30px; border-radius: 10px; max-height: 80vh; overflow-y: auto;">
+      <h3>Select Question to Add</h3>
+      <div id="question-list">
+        {% for q in questions %}
+          <div style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#f8f9fa'"
+               onmouseout="this.style.background='white'"
+               onclick="addQuestion({{ loop.index0 }})">
+            <strong>{{ q.column }}</strong><br>
+            <small style="color: #666;">{{ q.text }} ({{ q.type }})</small>
+          </div>
+        {% endfor %}
+      </div>
+      <button class="btn-secondary" onclick="closeAddQuestionModal()" style="margin-top: 15px;">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Store benchmark configuration
+    const benchmarkConfig = {
+      name: "{{ benchmark_name }}",
+      tiers: {{ tiers | tojson }},
+      questions: []
+    };
+
+    const availableQuestions = {{ questions | tojson }};
+    const questionStats = {{ question_stats | tojson }};
+    const dataFn = "{{ data_fn }}";
+    let questionCounter = 0;
+
+    function showAddQuestionModal() {
+      document.getElementById('add-question-modal').style.display = 'block';
+    }
+
+    function closeAddQuestionModal() {
+      document.getElementById('add-question-modal').style.display = 'none';
+    }
+
+    function pruneOrphanQuestions() {
+      benchmarkConfig.questions = benchmarkConfig.questions.filter(q => {
+      return !!document.getElementById(`question-${q.id}`);
+      });
+    }
+
+
+    function updateMaxScore() {
+      pruneOrphanQuestions();
+      let maxScore = 0;
+      let totalWeight = 0;
+      let formulaParts = [];
+
+      benchmarkConfig.questions.forEach(q => {
+        let maxPoints = 0;
+        if (q.type === 'numeric') {
+          if (q.scoring.method === 'direct') {
+            // Estimate based on data max
+            const stats = questionStats[q.column];
+            maxPoints = stats ? stats.max : 100;
+          } else if (q.scoring.bins) {
+            maxPoints = Math.max(...q.scoring.bins.map(b => b.points));
+          }
+        } else if (q.scoring.map) {
+          const values = Object.values(q.scoring.map);
+          maxPoints = values.length > 0 ? Math.max(...values) : 0;
+        }
+        maxScore += maxPoints * q.weight;
+        totalWeight += q.weight;
+
+        // Build formula part
+        formulaParts.push(`(${q.column}_points × ${q.weight})`);
+      });
+
+      if (benchmarkConfig.questions.length > 0) {
+        document.getElementById('total-points-display').style.display = 'block';
+        document.getElementById('max-score').textContent = maxScore.toFixed(1);
+
+        // Show equation
+        document.getElementById('equation-display').style.display = 'block';
+        const formulaText = document.getElementById('formula-text');
+
+        let formulaHTML = '<div style="margin-bottom: 10px;">';
+        formulaHTML += '<strong>Step 1:</strong> Calculate weighted score<br>';
+        formulaHTML += 'Score = ' + formulaParts.join(' + ');
+        formulaHTML += '</div>';
+
+        formulaHTML += '<div style="margin-bottom: 10px;">';
+        formulaHTML += '<strong>Step 2:</strong> Normalize to 0-100 scale<br>';
+        formulaHTML += `Final Score = (Score / ${maxScore.toFixed(1)}) × 100`;
+        formulaHTML += '</div>';
+
+        formulaHTML += '<div>';
+        formulaHTML += '<strong>Step 3:</strong> Assign tier based on score ranges<br>';
+        benchmarkConfig.tiers.forEach(tier => {
+          formulaHTML += `• ${tier.min}-${tier.max}: ${tier.label}<br>`;
+        });
+        formulaHTML += '</div>';
+
+        formulaText.innerHTML = formulaHTML;
+      } else {
+        document.getElementById('total-points-display').style.display = 'none';
+        document.getElementById('equation-display').style.display = 'none';
+      }
+    }
+
+    function addQuestion(index) {
+      if (benchmarkConfig.questions.length >= 10) {
+        alert('Maximum 10 questions allowed');
+        return;
+      }
+
+      const question = availableQuestions[index];
+
+      // Check if already added
+      if (benchmarkConfig.questions.find(q => q.column === question.column)) {
+        alert('Question already added');
+        return;
+      }
+
+      const questionId = questionCounter++;
+
+      const questionObj = {
+        id: questionId,
+        column: question.column,
+        type: question.type,
+        text: question.text,
+        weight: 1.0,
+        scoring: question.type === 'numeric' ?
+          { method: 'direct' } :
+          { method: 'mapped', map: {} }
+      };
+
+      benchmarkConfig.questions.push(questionObj);
+      renderQuestion(questionObj, question);
+      closeAddQuestionModal();
+      updateQuestionCount();
+      updateMaxScore();
+    }
+
+    function renderQuestion(questionObj, questionData) {
+      const container = document.getElementById('questions-container');
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      card.id = `question-${questionObj.id}`;
+
+      let scoringHTML = '';
+      const stats = questionStats[questionObj.column];
+
+      if (questionObj.type === 'numeric') {
+        // Show statistics for numeric questions
+        let statsHTML = '';
+        if (stats) {
+          statsHTML = `
+            <div class="stats-box">
+              <strong>Data Statistics:</strong>
+              <div class="stats-grid">
+                <div class="stat-item"><span>Min:</span> <strong>${stats.min.toFixed(2)}</strong></div>
+                <div class="stat-item"><span>Max:</span> <strong>${stats.max.toFixed(2)}</strong></div>
+                <div class="stat-item"><span>Average:</span> <strong>${stats.mean.toFixed(2)}</strong></div>
+                <div class="stat-item"><span>Median:</span> <strong>${stats.median.toFixed(2)}</strong></div>
+              </div>
+            </div>
+          `;
+        }
+
+        scoringHTML = `
+          <div class="scoring-config">
+            ${statsHTML}
+            <label>
+              <strong>Scoring Method:</strong><br>
+              <select onchange="updateScoringMethod(${questionObj.id}, this.value)" id="scoring-method-${questionObj.id}">
+                <option value="direct">Direct value (number = points)</option>
+                <option value="binned">Binned ranges</option>
+              </select>
+            </label>
+            <div id="scoring-details-${questionObj.id}" style="margin-top: 10px;">
+              <p style="color: #666; font-size: 13px;">The numeric value will be used directly as points.</p>
+            </div>
+          </div>
+        `;
+      } else {
+        // Categorical
+        scoringHTML = `
+          <div class="scoring-config">
+            <strong>Assign points to each option:</strong>
+            <div id="cat-options-${questionObj.id}" style="margin-top: 10px;">
+        `;
+
+        if (questionData.options && questionData.options.length > 0) {
+          questionData.options.forEach((opt, i) => {
+            const initialPoints = 0;
+            // Initialize the map
+            questionObj.scoring.map[opt] = initialPoints;
+
+            // Get percentage if available
+            const percentage = stats && stats.distribution && stats.distribution[opt] ?
+                               stats.distribution[opt].toFixed(1) : 'N/A';
+
+            scoringHTML += `
+              <div class="cat-input">
+                <label>${opt} <span class="cat-option-stat">(${percentage}% of respondents)</span></label>
+                <input type="number" value="${initialPoints}" step="1"
+                       onchange="updateCatPoints(${questionObj.id}, '${opt.replace(/'/g, "\\'")}', this.value)">
+              </div>
+            `;
+          });
+        } else {
+          scoringHTML += `<p style="color: #999;">No predefined options. Points will be assigned to values as they appear.</p>`;
+        }
+
+        scoringHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="question-header" onclick="toggleQuestion(${questionObj.id})">
+          <div>
+            <strong>${questionData.column}</strong><br>
+            <small style="color: #666;">${questionData.text}</small>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label onclick="event.stopPropagation()">
+              Weight: <input type="number" class="weight-input" value="1.0" step="0.1" min="0.1"
+                           onchange="updateWeight(${questionObj.id}, this.value)">
+            </label>
+            <button class="btn-danger" onclick="event.stopPropagation(); removeQuestion(${questionObj.id})">Remove</button>
+          </div>
+        </div>
+        ${scoringHTML}
+      `;
+
+      container.appendChild(card);
+    }
+
+    function toggleQuestion(id) {
+      const card = document.getElementById(`question-${id}`);
+      card.classList.toggle('collapsed');
+    }
+
+    function removeQuestion(id) {
+      benchmarkConfig.questions = benchmarkConfig.questions.filter(q => q.id !== id);
+      document.getElementById(`question-${id}`).remove();
+      updateQuestionCount();
+      updateMaxScore();
+    }
+
+    function updateWeight(id, value) {
+      const question = benchmarkConfig.questions.find(q => q.id === id);
+      if (question) {
+        question.weight = parseFloat(value);
+        updateMaxScore();
+      }
+    }
+
+    function updateScoringMethod(id, method) {
+      const question = benchmarkConfig.questions.find(q => q.id === id);
+      if (!question) return;
+
+      question.scoring.method = method;
+
+      const detailsDiv = document.getElementById(`scoring-details-${id}`);
+      const stats = questionStats[question.column];
+
+      if (method === 'direct') {
+        detailsDiv.innerHTML = '<p style="color: #666; font-size: 13px;">The numeric value will be used directly as points.</p>';
+      } else if (method === 'binned') {
+        // Create default bins based on statistics
+        let defaultBins = [];
+        if (stats) {
+          const range = stats.max - stats.min;
+          const third = range / 3;
+          defaultBins = [
+            { max: stats.min + third, points: 0 },
+            { max: stats.min + (2 * third), points: 50 },
+            { max: Infinity, points: 100 }
+          ];
+        } else {
+          defaultBins = [
+            { max: 1000000, points: 0 },
+            { max: 10000000, points: 50 },
+            { max: Infinity, points: 100 }
+          ];
+        }
+
+        question.scoring.bins = defaultBins;
+
+        detailsDiv.innerHTML = `
+          <div id="bins-${id}">
+            <div class="bin-input">
+              <label>≤ <input type="number" value="${defaultBins[0].max}" onchange="updateBin(${id}, 0, 'max', this.value)"></label>
+              <input type="number" value="${defaultBins[0].points}" onchange="updateBin(${id}, 0, 'points', this.value)"> points
+            </div>
+            <div class="bin-input">
+              <label>≤ <input type="number" value="${defaultBins[1].max}" onchange="updateBin(${id}, 1, 'max', this.value)"></label>
+              <input type="number" value="${defaultBins[1].points}" onchange="updateBin(${id}, 1, 'points', this.value)"> points
+            </div>
+            <div class="bin-input">
+              <label>> Above</label>
+              <input type="number" value="${defaultBins[2].points}" onchange="updateBin(${id}, 2, 'points', this.value)"> points
+            </div>
+          </div>
+        `;
+      }
+      updateMaxScore();
+    }
+
+    function updateBin(id, binIndex, field, value) {
+      const question = benchmarkConfig.questions.find(q => q.id === id);
+      if (question && question.scoring.bins) {
+        if (field === 'max') {
+          question.scoring.bins[binIndex].max = parseFloat(value);
+        } else {
+          question.scoring.bins[binIndex].points = parseFloat(value);
+        }
+        updateMaxScore();
+      }
+    }
+
+    function updateCatPoints(id, option, points) {
+      const question = benchmarkConfig.questions.find(q => q.id === id);
+      if (question) {
+        if (!question.scoring.map) {
+          question.scoring.map = {};
+        }
+        question.scoring.map[option] = parseFloat(points);
+        updateMaxScore();
+      }
+    }
+
+    function updateQuestionCount() {
+      document.getElementById('question-count').textContent = benchmarkConfig.questions.length;
+    }
+
+    function calculateDistribution() {
+      pruneOrphanQuestions();
+      if (benchmarkConfig.questions.length === 0) {
+        alert('Please add at least one question first');
+        return;
+      }
+
+      const displayDiv = document.getElementById('distribution-display');
+      displayDiv.innerHTML = '<p style="text-align: center;">Calculating...</p>';
+
+      fetch('/api/preview_distribution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data_fn: dataFn,
+          map_fn: "{{ map_fn }}",
+          benchmark_config: benchmarkConfig
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          renderDistribution(data.distribution, data.total);
+
+          // Display score statistics
+          if (data.score_stats) {
+            document.getElementById('score-stats-display').style.display = 'block';
+            document.getElementById('score-min').textContent = data.score_stats.min.toFixed(1);
+            document.getElementById('score-max').textContent = data.score_stats.max.toFixed(1);
+            document.getElementById('score-mean').textContent = data.score_stats.mean.toFixed(1);
+            document.getElementById('score-median').textContent = data.score_stats.median.toFixed(1);
+          }
+        } else {
+          displayDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+        }
+      })
+      .catch(error => {
+        displayDiv.innerHTML = `<p style="color: red;">Error: ${error}</p>`;
+      });
+    }
+
+    function renderDistribution(distribution, total) {
+      const colors = ['#C0504D', '#F79646', '#9BBB59', '#4F81BD', '#8064A2', '#4BACC6'];
+      const displayDiv = document.getElementById('distribution-display');
+
+      let html = '<div class="distribution-bar">';
+      distribution.forEach((tier, i) => {
+        const width = (tier.count / total * 100).toFixed(1);
+        if (parseFloat(width) > 0) {
+          html += `
+            <div class="dist-segment" style="width: ${width}%; background: ${colors[i % colors.length]};">
+              ${tier.percentage}%
+            </div>
+          `;
+        }
+      });
+      html += '</div>';
+
+      html += '<div style="margin-top: 15px;">';
+      distribution.forEach((tier, i) => {
+        html += `
+          <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 14px;">
+            <span><span style="display: inline-block; width: 12px; height: 12px; background: ${colors[i % colors.length]}; margin-right: 8px;"></span>${tier.label}</span>
+            <span><strong>${tier.count}</strong> (${tier.percentage}%)</span>
+          </div>
+        `;
+      });
+      html += `<hr style="margin: 10px 0;"><div style="display: flex; justify-content: space-between; font-weight: bold;">
+        <span>Total</span><span>${total}</span>
+      </div></div>`;
+
+      displayDiv.innerHTML = html;
+    }
+
+    function saveAndDownload() {
+      pruneOrphanQuestions();
+      if (benchmarkConfig.questions.length === 0) {
+        alert('Please add at least one question before saving');
+        return;
+      }
+
+      // Clean up the config - remove IDs and temporary fields
+      const cleanConfig = {
+        name: benchmarkConfig.name,
+        tiers: benchmarkConfig.tiers,
+        questions: benchmarkConfig.questions.map(q => ({
+          column: q.column,
+          type: q.type,
+          weight: q.weight,
+          scoring: q.scoring
+        }))
+      };
+
+      document.getElementById('benchmark_config').value = JSON.stringify(cleanConfig);
+      document.getElementById('benchmark-form').submit();
+    }
+
+    function skipToAnalysis() {
+      if (confirm('Skip benchmark creation and go directly to cross-tab analysis?')) {
+        window.location.href = '/benchmark/setup?data_fn={{ data_fn }}&map_fn={{ map_fn }}&build_benchmark=no';
+      }
+    }
+  </script>
+</body>
+</html>
